@@ -1,0 +1,157 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Simple markers</title>
+        <!-- <link rel="stylesheet" href="css/style.css"> -->
+    	<style>
+    		#map {
+    			height: 90%;
+    		}
+    		html, body {
+    			height: 100%;
+    			margin: 0;
+    			padding: 0;
+    		}
+    		form {
+    			margin: 5px;
+    			font-size: 1.2em;
+    			text-transform: uppercase;
+    		}
+    		form span {
+    			font-family: "Arial Black", Gadget, sans-serif;
+    			color: #696969;
+    		}
+ 		</style>
+    </head>
+
+    <body>
+
+	    <!-- User input form -->
+	    <form id="myForm">
+	    	<span>Enter a location </span>
+	    	<input id="locationInput" type="text" name="location">
+	    	<input type="submit" value="SUBMIT">
+	    </form>
+	  	<hr>
+        
+        <!-- Container for map component -->
+        <div id="map"></div>
+
+        <script>
+
+        var map;
+        var marker;
+        var infowindow;
+
+        // Initialize and load map
+    	function initMap() {
+    		// Sets original location for the map/marker when init, Toronto
+    		var origLoc = {
+    			lat: 43.65,
+    			lng: -79.38
+    		};
+
+    		map = new google.maps.Map(document.getElementById("map"), {
+    			zoom: 10,
+    			center: origLoc
+    		});
+
+    		marker = new google.maps.Marker({
+    			map: map,
+    			position: origLoc,
+    			draggable: true
+    		});
+
+    		infowindow = new google.maps.InfoWindow();
+
+    		markerAddListeners(marker);
+    	}
+
+        var locationText;
+        var form = document.getElementById("myForm");
+
+        // button.addEventListener('click', function() {
+        form.addEventListener('submit', function(e) {
+        	e.preventDefault();
+        	locationText = getLocationText();
+
+        	var service = new google.maps.places.PlacesService(map);
+        	service.textSearch({query: locationText}, callback);
+        });
+
+        // Get the location user inputted
+		function getLocationText() {
+			var loc = document.getElementById("locationInput").value;
+			return loc;
+		}
+
+		// Callback function for place services API, calls updateMapMarker once place services return
+		function callback(results, status) {
+			if (status === google.maps.places.PlacesServiceStatus.OK) {
+				for (var i = 0; i < results.length; i++) {
+					updateMapMarker(results[i]);
+				}
+			}
+		}
+
+		// Update the map/marker positions based on user input
+		function updateMapMarker(location) {
+			var myLatLng = location.geometry.location;
+			var name = location.formatted_address;
+
+			map = new google.maps.Map(document.getElementById("map"), {
+				zoom: 8,
+				center: myLatLng
+			});
+
+			marker = new google.maps.Marker({
+				map: map,
+				position: myLatLng,
+				animation: google.maps.Animation.DROP,
+				draggable: true
+			})
+			markerAddListeners(marker);
+
+			// Clear the content in the input box
+        	var input = document.getElementById("locationInput");
+        	input.value = "";
+		}
+
+
+		// Geocoder function - finds the marker location and displays the formatted address in infowindow
+		function geocodePosition(position) {
+			var geocoder = new google.maps.Geocoder();
+			geocoder.geocode({latLng: position}, function(response) {
+				if (response && response.length > 0) {
+					marker.formatted_address = response[0].formatted_address;
+				} else {
+					marker.formatted_address = 'Cannot determine address at this location.';
+					}
+					infowindow.setContent(marker.formatted_address);
+					infowindow.open(map, marker);
+			})
+		}
+
+		// Event listeners for marker component, updates infowindow with formatted location info when mouseover or dragged to new position
+    	function markerAddListeners(marker) {
+    		marker.addListener('mouseover', function() {
+    			geocodePosition(marker.getPosition());
+    		})
+    		marker.addListener('mouseout', function() {
+    			infowindow.close();
+    		})
+    		marker.addListener('dragend', function() {
+    			geocodePosition(marker.getPosition());
+    		})
+    	}
+
+        window.addEventListener('load', initMap);
+
+    </script>
+
+ 	 <script src="http://maps.googleapis.com/maps/api/js?libraries=places"></script>
+    </body>
+</html>
